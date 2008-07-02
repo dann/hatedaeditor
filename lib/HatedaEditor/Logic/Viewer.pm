@@ -11,39 +11,30 @@ sub edit {
     $c->status('Editing diary...');
     $c->leave_curses;
 
-    my $date  = $c->question( -question => 'Date(YYYY-MM-DD): ' );
+    my $date = $c->question( -question => 'Date(YYYY-MM-DD): ' );
     unless ($date) {
         $c->reset_curses;
         return;
     }
 
-    unless(is_valid_date($date)) {
-        $c->error('Invalid date format!'); 
+    unless ( _is_valid_date($date) ) {
+        $c->error('Invalid date format!');
         $c->reset_curses;
         return;
     }
-    
-    my $entry = get_diary_entry($date);
+
+    my $entry = _get_diary_entry($date);
     my $fh    = File::Temp->new
         or die "Can't create a temp file";
-    my $body  = $entry->{body};
-    my $title = $entry->{title};
-    Encode::from_to( $body,  'euc-jp', 'utf8' );
-    Encode::from_to( $title, 'euc-jp', 'utf8' );
+
+    my $body  = _get_body_text($entry);
+    my $title = _get_title_text($entry);
 
     $fh->print($body);
 
-    my $editor = $ENV{EDITOR} || 'vim' || 'emacs';
-    if ( $editor eq 'vim' || $editor eq 'vi' ) {
-        system( $editor, "-c", "set filetype=hatena",
-            "-c", "syntax on", "-c", "set background=dark",
-            $fh->filename
-        );
-    }
-    else {
-        system( $editor, $fh->filename );
-    }
-    my $new_entry_text = _read_file( $fh->filename );
+    my $filename = $fh->filename;
+    _editor($filename);
+    my $new_entry_text = _read_file($filename);
     $fh->close;
 
     $c->status('Updating diary...');
@@ -59,16 +50,42 @@ sub edit {
     $c->reset_curses;
 }
 
-sub is_valid_date {
+sub _get_body_text {
+    my $entry = shift;
+    my $body  = $entry->{body};
+    Encode::from_to( $body, 'euc-jp', 'utf8' );
+    return $body;
+}
+
+sub _get_title_text {
+    my $entry = shift;
+    my $title = $entry->{title};
+    Encode::from_to( $title, 'euc-jp', 'utf8' );
+    return $title;
+}
+
+sub _editor {
+    my $filename = shift;
+    my $editor = $ENV{EDITOR} || 'vim' || 'emacs';
+    if ( $editor eq 'vim' || $editor eq 'vi' ) {
+        system( $editor, "-c", "set filetype=hatena",
+            "-c", "syntax on", "-c", "set background=dark", $filename );
+    }
+    else {
+        system( $editor, $filename );
+    }
+}
+
+sub _is_valid_date {
     my $date = shift;
-    unless($date =~/(\d\d\d\d)-(\d\d)-(\d\d)/) {
+    unless ( $date =~ /(\d\d\d\d)-(\d\d)-(\d\d)/ ) {
         return 0;
     }
 
     return 1;
 }
 
-sub get_diary_entry {
+sub _get_diary_entry {
     my $date = shift;
     my $post = HatedaEditor->api->retrieve_day( { date => $date, } );
     return $post;
@@ -95,10 +112,6 @@ sub load_entry {
 
     HatedaEditor->viewer->text($entry_text);
     HatedaEditor->cui->nostatus;
-}
-
-sub select_group {
-
 }
 
 1;
