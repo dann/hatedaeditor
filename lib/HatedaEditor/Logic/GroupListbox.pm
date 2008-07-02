@@ -1,4 +1,6 @@
 package HatedaEditor::Logic::GroupListbox;
+use strict;
+use warnings;
 use HatedaEditor;
 
 sub onchange {

@@ -5,6 +5,7 @@ use HatedaEditor;
 use Encode;
 use Data::Dumper;
 use File::Temp;
+use Path::Class qw(file);
 
 sub edit {
     my $c = HatedaEditor->cui;
@@ -93,25 +94,7 @@ sub _get_diary_entry {
 
 sub _read_file {
     my $filename = shift;
-    open( my $fh, $filename ) or die "unable to open $filename $!\n";
-    my $new_content;
-    {
-        local $/;
-        $new_content = <$fh>;
-    }
-    close $fh;
-    return $new_content;
-}
-
-sub load_entry {
-    my $date;
-    HatedaEditor->cui->status("Getting diary ...");
-    my $entry      = get_diary_entry($date);
-    my $entry_text = $entry->body;
-    Encode::from_to( $entry_text, 'euc-jp', 'utf8' );
-
-    HatedaEditor->viewer->text($entry_text);
-    HatedaEditor->cui->nostatus;
+    return file($filename)->slurp;
 }
 
 1;

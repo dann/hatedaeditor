@@ -1,4 +1,5 @@
 package HatedaEditor::ConfigLoader;
+use strict;
 use YAML;
 use File::HomeDir;
 use Path::Class qw(file);

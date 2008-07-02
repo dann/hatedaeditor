@@ -161,7 +161,7 @@ sub _setup_menu {
 }
 
 # refactor
-sub exit_dialog() {
+sub exit_dialog {
     my $return = __PACKAGE__->cui->dialog(
         -message => "Do you really want to quit?",
         -title   => "Are you sure???",
