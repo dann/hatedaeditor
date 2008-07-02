@@ -17,6 +17,8 @@ has 'conf' => (
     default => sub { file( File::HomeDir->my_home, ".hdedit" ) },
 );
 
+no Moose;
+
 sub prompt {
     my ( $self, $prompt ) = @_;
     my $value = ExtUtils::MakeMaker::prompt($prompt);
@@ -30,6 +32,8 @@ sub load {
     $config->{username} ||= $self->prompt("user name:");
     $config->{password}
         ||= $self->prompt("password:");
+    $config->{group_list}
+        ||= $self->prompt("group (space separated ):");
     $self->save($config);
     return $config;
 }

@@ -54,14 +54,19 @@ sub edit {
 sub _get_body_text {
     my $entry = shift;
     my $body  = $entry->{body};
-    Encode::from_to( $body, 'euc-jp', 'utf8' );
+    if(HatedaEditor->current_group eq 'NONE') {
+        Encode::from_to( $body, 'euc-jp', 'utf8' );
+    }
     return $body;
 }
 
 sub _get_title_text {
     my $entry = shift;
     my $title = $entry->{title};
-    Encode::from_to( $title, 'euc-jp', 'utf8' );
+
+    if(HatedaEditor->current_group eq 'NONE') {
+        Encode::from_to( $title, 'euc-jp', 'utf8' );
+    }
     return $title;
 }
 

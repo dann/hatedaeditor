@@ -23,17 +23,18 @@ class_has 'cui'           => (
     default => sub {
         return Curses::UI->new(
             -color_support => 1,
-            -language      => "japanese"
+            -language      => "english"
         );
     }
 );
 class_has 'api' => ( is => 'rw', );
 class_has 'current_group' => (
-    is  => 'rw',
-    isa => 'Str'
+    is      => 'rw',
+    isa     => 'Str',
+    default => 'NONE',
 );
 
-has 'config' => ( is => 'rw', );
+class_has 'config' => ( is => 'rw', );
 
 sub BUILD {
     my $self = shift;
@@ -41,6 +42,8 @@ sub BUILD {
     $self->_setup_api;
     $self->_setup_ui;
 }
+
+no Moose;
 
 sub _load_config {
     my $self          = shift;
@@ -50,20 +53,22 @@ sub _load_config {
 
 sub _setup_api {
     my $self  = shift;
+    my $group = shift;
+
     my $diary = WWW::HatenaDiary->new(
         {   username => $self->config->{username},
             password => $self->config->{password},
+            group    => $group,
         }
     );
     if ( !$diary->is_loggedin ) {
-
         $diary->login(
             {   username => $self->config->{username},
                 password => $self->config->{password},
             }
         );
     }
-    $self->api($diary);
+    __PACKAGE__->api($diary);
 }
 
 sub _setup_ui {
@@ -72,35 +77,34 @@ sub _setup_ui {
     $self->_setup_window;
     $self->_setup_menu;
     $self->_setup_viewer;
-    $self->_setup_group_listbox;
 
     # focusするタイミングを調べる
     __PACKAGE__->viewer->focus();
     __PACKAGE__->cui->leave_curses;
 }
 
-sub _setup_group_listbox {
-    my $group_list = [ 'catalyst', 'dann', 'NONE' ];
+sub create_group_listbox {
+    my $self = shift;
+
+    my @group_list = split /\s/, __PACKAGE__->config->{group_list};
+    push @group_list, 'NONE';
     my $group_listbox = __PACKAGE__->win->add(
         'listbox',
         'Listbox',
         -border     => 1,
-        -values     => $group_list,
+        -values     => \@group_list,
         -wraparound => 1,
         -x          => 5,
         -y          => 2,
         -width      => 50,
-        change_cb   => sub {
-
-            #    my $group = shift;
-            #HatedaEditor->current_group($group);
-            #HatedaEditor->win->delete('listbox');
-        },
-
-        -onchange => \&HatedaEditor::Logic::GroupListbox::onchange,
+        -height     => 5,
+        -onchange   => \&HatedaEditor::Logic::GroupListbox::onchange,
     );
     __PACKAGE__->group_listbox($group_listbox);
 
+    $self->_setup_group_listbox_binding();
+
+    return $group_listbox;
 }
 
 sub _setup_group_listbox_binding {
@@ -128,7 +132,7 @@ sub _setup_cui_binding {
     $c->set_binding( sub { __PACKAGE__->viewer->focus() }, 'v' );
     $c->set_binding(
         sub {
-            __PACKAGE__->group_listbox->focus();
+            __PACKAGE__->create_group_listbox()->focus();
         },
         'g'
     );
@@ -155,7 +159,8 @@ sub _setup_menu {
     my $menu = __PACKAGE__->cui->add(
         'menu', 'Menubar',
         -menu => \@menu,
-        -fg   => "blue",
+        -fg   => "black",
+        -bg   => "white",
     );
     __PACKAGE__->menu($menu);
 }
@@ -181,17 +186,6 @@ sub _setup_window {
             -bfg    => 'red',
         )
     );
-    my $help_label = __PACKAGE__->win->add(
-        'helplabel', 'Label',
-        -bold => 1,
-        -text => "Help: hit '?'",
-
-        #-x => 32,
-        #    -y => 0,
-
-    );
-    $help_label->draw;
-
 }
 
 sub _setup_viewer {
