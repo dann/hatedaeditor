@@ -84,7 +84,7 @@ sub _editor {
 
 sub _is_valid_date {
     my $date = shift;
-    unless ( $date =~ /(\d\d\d\d)-(\d\d)-(\d\d)/ ) {
+    unless ( $date =~ /^(\d{4})-(\d{2})-(\d{2})$/ ) {
         return 0;
     }
 
