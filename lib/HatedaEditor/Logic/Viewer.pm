@@ -4,12 +4,25 @@ use warnings;
 use HatedaEditor;
 use Encode;
 use Data::Dumper;
+use File::Temp;
 
 sub edit {
-    HatedaEditor->cui->status('Editing diary...');
-    HatedaEditor->cui->leave_curses;
+    my $c = HatedaEditor->cui;
+    $c->status('Editing diary...');
+    $c->leave_curses;
 
-    my $date  = HatedaEditor->cui->question( -question => 'Date: ' );
+    my $date  = $c->question( -question => 'Date(YYYY-MM-DD): ' );
+    unless ($date) {
+        $c->reset_curses;
+        return;
+    }
+
+    unless(is_valid_date($date)) {
+        $c->error('Invalid date format!'); 
+        $c->reset_curses;
+        return;
+    }
+    
     my $entry = get_diary_entry($date);
     my $fh    = File::Temp->new
         or die "Can't create a temp file";
@@ -30,11 +43,10 @@ sub edit {
     else {
         system( $editor, $fh->filename );
     }
-
     my $new_entry_text = _read_file( $fh->filename );
-    HatedaEditor->viewer->text($new_entry_text);
+    $fh->close;
 
-    # FIXME
+    $c->status('Updating diary...');
     HatedaEditor->api->update_day(
         {   title => $title,
             body  => $new_entry_text,
@@ -42,10 +54,18 @@ sub edit {
         }
     );
 
-    $fh->close;
+    HatedaEditor->viewer->text($new_entry_text);
+    $c->nostatus;
+    $c->reset_curses;
+}
 
-    HatedaEditor->cui->nostatus;
-    HatedaEditor->cui->reset_curses;
+sub is_valid_date {
+    my $date = shift;
+    unless($date =~/(\d\d\d\d)-(\d\d)-(\d\d)/) {
+        return 0;
+    }
+
+    return 1;
 }
 
 sub get_diary_entry {
@@ -75,6 +95,10 @@ sub load_entry {
 
     HatedaEditor->viewer->text($entry_text);
     HatedaEditor->cui->nostatus;
+}
+
+sub select_group {
+
 }
 
 1;

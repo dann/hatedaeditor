@@ -9,19 +9,29 @@ use WWW::HatenaDiary;
 use HatedaEditor::ConfigLoader;
 use HatedaEditor::Logic::Common;
 use HatedaEditor::Logic::Viewer;
+use HatedaEditor::Logic::GroupListbox;
 use Encode;
 
 our $VERSION = '0.01';
 
-class_has 'win'    => ( is => 'rw', );
-class_has 'viewer' => ( is => 'rw', );
-class_has 'cui'    => (
+class_has 'win'           => ( is => 'rw', );
+class_has 'viewer'        => ( is => 'rw', );
+class_has 'group_listbox' => ( is => 'rw', );
+class_has 'menu'          => ( is => 'rw', );
+class_has 'cui'           => (
     is      => 'rw',
     default => sub {
-        return Curses::UI->new( -color_support => 1 );
+        return Curses::UI->new(
+            -color_support => 1,
+            -language      => "japanese"
+        );
     }
 );
 class_has 'api' => ( is => 'rw', );
+class_has 'current_group' => (
+    is  => 'rw',
+    isa => 'Str'
+);
 
 has 'config' => ( is => 'rw', );
 
@@ -62,10 +72,47 @@ sub _setup_ui {
     $self->_setup_window;
     $self->_setup_menu;
     $self->_setup_viewer;
+    $self->_setup_group_listbox;
 
     # focusするタイミングを調べる
     __PACKAGE__->viewer->focus();
     __PACKAGE__->cui->leave_curses;
+}
+
+sub _setup_group_listbox {
+    my $group_list = [ 'catalyst', 'dann', 'NONE' ];
+    my $group_listbox = __PACKAGE__->win->add(
+        'listbox',
+        'Listbox',
+        -border     => 1,
+        -values     => $group_list,
+        -wraparound => 1,
+        -x          => 5,
+        -y          => 2,
+        -width      => 50,
+        change_cb   => sub {
+
+            #    my $group = shift;
+            #HatedaEditor->current_group($group);
+            #HatedaEditor->win->delete('listbox');
+        },
+
+        -onchange => \&HatedaEditor::Logic::GroupListbox::onchange,
+    );
+    __PACKAGE__->group_listbox($group_listbox);
+
+}
+
+sub _setup_group_listbox_binding {
+    my $self = shift;
+    __PACKAGE__->group_listbox->set_binding(
+        sub {
+            __PACKAGE__->win->delete('listbox');
+            __PACKAGE__->win->draw;
+        },
+        'q'
+    );
+
 }
 
 sub _setup_cui {
@@ -74,10 +121,17 @@ sub _setup_cui {
 }
 
 sub _setup_cui_binding {
-    __PACKAGE__->cui->set_binding( \&HatedaEditor::Logic::Common::quit,
-        "\cq" );
-    __PACKAGE__->cui->set_binding( \&HatedaEditor::Logic::Common::quit,
-        "\cc" );
+    my $c = __PACKAGE__->cui;
+    $c->set_binding( \&HatedaEditor::Logic::Common::quit, "\cq" );
+    $c->set_binding( \&HatedaEditor::Logic::Common::quit, "\cc" );
+    $c->set_binding( sub { __PACKAGE__->menu->focus() },   'm' );
+    $c->set_binding( sub { __PACKAGE__->viewer->focus() }, 'v' );
+    $c->set_binding(
+        sub {
+            __PACKAGE__->group_listbox->focus();
+        },
+        'g'
+    );
 }
 
 sub _setup_menu {
@@ -87,12 +141,23 @@ sub _setup_menu {
             -submenu =>
                 [ { -label => 'Exit      ^Q', -value => \&exit_dialog } ]
         },
+        {   -label   => 'Help',
+            -submenu => [
+                {   -label => 'Help      ',
+                    -value => \&HatedaEditor::Logic::Common::show_help
+                },
+                {   -label => 'About     ',
+                    -value => \&HatedaEditor::Logic::Common::show_about
+                },
+            ]
+        }
     );
     my $menu = __PACKAGE__->cui->add(
         'menu', 'Menubar',
         -menu => \@menu,
         -fg   => "blue",
     );
+    __PACKAGE__->menu($menu);
 }
 
 # refactor
@@ -108,7 +173,7 @@ sub exit_dialog() {
 
 sub _setup_window {
     my $self = shift;
-    $self->win(
+    __PACKAGE__->win(
         __PACKAGE__->cui->add(
             'main', 'Window',
             -border => 1,
@@ -116,6 +181,17 @@ sub _setup_window {
             -bfg    => 'red',
         )
     );
+    my $help_label = __PACKAGE__->win->add(
+        'helplabel', 'Label',
+        -bold => 1,
+        -text => "Help: hit '?'",
+
+        #-x => 32,
+        #    -y => 0,
+
+    );
+    $help_label->draw;
+
 }
 
 sub _setup_viewer {
@@ -132,14 +208,18 @@ sub _setup_viewer {
 
 sub _setup_viewer_binding {
     my $self = shift;
-    __PACKAGE__->viewer->set_binding(
-        \&HatedaEditor::Logic::Common::show_help, '?' );
-    __PACKAGE__->viewer->set_binding( \&HatedaEditor::Logic::Viewer::edit,
-        'e' );
-    __PACKAGE__->viewer->set_binding( \&HatedaEditor::Logic::Common::quit,
-        'q' );
-    __PACKAGE__->viewer->set_binding( sub { __PACKAGE__->viewer->focus; },
-        'v' );
+    my $v    = __PACKAGE__->viewer;
+    $v->set_binding( \&HatedaEditor::Logic::Common::show_help, '?' );
+    $v->set_binding( \&HatedaEditor::Logic::Viewer::edit,      'e' );
+    $v->set_binding( \&HatedaEditor::Logic::Common::quit,      'q' );
+    $v->set_binding( sub { $v->focus; },         'v' );
+    $v->set_binding( sub { $v->cursor_down },    'j' );
+    $v->set_binding( sub { $v->cursor_up },      'k' );
+    $v->set_binding( sub { $v->cursor_right },   'l' );
+    $v->set_binding( sub { $v->cursor_left },    'h' );
+    $v->set_binding( sub { $v->cursor_to_home }, '0' );
+    $v->set_binding( sub { $v->cursor_to_end },  'G' );
+
 }
 
 sub run {
