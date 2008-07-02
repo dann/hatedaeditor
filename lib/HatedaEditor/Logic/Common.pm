@@ -31,19 +31,15 @@ sub show_help {
 Basic Commands:
  j/k/h/l/arrow keys - move cursor
  e       - open page for edit
- r       - choose from recently changed pages
  g       - choose hatena group
+ m       - select menu
+ v       - focus viewer
 
 Awesome Commands:
  0/G - move to beginning/end of page
- s   - search
- u   - show the uri for the current entry
- m   - show page metadata (categor)
- P   - New blog post
 
 Find:
  / - find forward
- ? - find backwards 
 
 Ctrl-q / Ctrl-c / q - quit
 EOT
