@@ -3,8 +3,9 @@ use strict;
 use warnings;
 use HatedaEditor;
 use Encode;
-use Data::Dumper;
 use File::Temp;
+use DateTime;
+use DateTime::TimeZone;
 use Path::Class qw(file);
 
 sub edit {
@@ -24,6 +25,32 @@ sub edit {
         return;
     }
 
+    _edit_entry($date);
+}
+
+sub edit_new_entry {
+    my $c            = HatedaEditor->cui;
+    my $current_date = _current_ymd();
+    $c->status("Creating new diary entry on $current_date");
+    $c->leave_curses;
+
+    unless ( _is_valid_date($current_date) ) {
+        $c->error('Invalid date format!');
+        $c->reset_curses;
+        return;
+    }
+    _edit_entry($current_date);
+}
+
+sub _current_ymd {
+    my $tzhere = DateTime::TimeZone->new( name => 'local' );
+    my $dt = DateTime->now( time_zone => $tzhere );
+    $dt->ymd('-');
+}
+
+sub _edit_entry {
+    my $date  = shift;
+    my $c     = HatedaEditor->cui;
     my $entry = _get_diary_entry($date);
     my $fh    = File::Temp->new
         or die "Can't create a temp file";
@@ -38,6 +65,7 @@ sub edit {
     my $new_entry_text = _read_file($filename);
     $fh->close;
 
+    $c->nostatus;
     $c->status('Updating diary...');
     HatedaEditor->api->update_day(
         {   title => $title,
@@ -54,7 +82,7 @@ sub edit {
 sub _get_body_text {
     my $entry = shift;
     my $body  = $entry->{body};
-    if(HatedaEditor->current_group eq 'NONE') {
+    if ( HatedaEditor->current_group eq 'NONE' ) {
         Encode::from_to( $body, 'euc-jp', 'utf8' );
     }
     return $body;
@@ -64,7 +92,7 @@ sub _get_title_text {
     my $entry = shift;
     my $title = $entry->{title};
 
-    if(HatedaEditor->current_group eq 'NONE') {
+    if ( HatedaEditor->current_group eq 'NONE' ) {
         Encode::from_to( $title, 'euc-jp', 'utf8' );
     }
     return $title;

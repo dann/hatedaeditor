@@ -30,7 +30,8 @@ sub show_help {
         -message => <<EOT);
 Basic Commands:
  j/k/h/l/arrow keys - move cursor
- e       - open page for edit
+ e       - open diary entry for edit
+ c       - create new diary entry for edit
  g       - choose hatena group
  m       - select menu
  v       - focus viewer

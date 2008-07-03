@@ -223,9 +223,10 @@ sub _setup_viewer {
 sub _setup_viewer_binding {
     my $self = shift;
     my $v    = __PACKAGE__->viewer;
-    $v->set_binding( \&HatedaEditor::Logic::Common::show_help, '?' );
-    $v->set_binding( \&HatedaEditor::Logic::Viewer::edit,      'e' );
-    $v->set_binding( \&HatedaEditor::Logic::Common::quit,      'q' );
+    $v->set_binding( \&HatedaEditor::Logic::Common::show_help,      '?' );
+    $v->set_binding( \&HatedaEditor::Logic::Viewer::edit,           'e' );
+    $v->set_binding( \&HatedaEditor::Logic::Viewer::edit_new_entry, 'c' );
+    $v->set_binding( \&HatedaEditor::Logic::Common::quit,           'q' );
     $v->set_binding( sub { $v->focus; },         'v' );
     $v->set_binding( sub { $v->cursor_down },    'j' );
     $v->set_binding( sub { $v->cursor_up },      'k' );

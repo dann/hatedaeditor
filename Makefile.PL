@@ -15,6 +15,8 @@ requires $_
     WWW::HatenaDiary
     YAML
     HTTP::Cookies
+    DateTime 
+    DateTime::TimeZone
     /
     );
 
