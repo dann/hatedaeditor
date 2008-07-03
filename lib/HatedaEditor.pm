@@ -13,7 +13,7 @@ use HatedaEditor::Logic::GroupListbox;
 use Encode;
 use HTTP::Cookies;
 
-our $VERSION = '0.01';
+our $VERSION = '0.003';
 our $DEBUG = 0 || $ENV{DEBUG_HATEDAEDITOR};
 
 class_has 'win'           => ( is => 'rw', );
