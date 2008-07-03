@@ -11,8 +11,10 @@ use HatedaEditor::Logic::Common;
 use HatedaEditor::Logic::Viewer;
 use HatedaEditor::Logic::GroupListbox;
 use Encode;
+use HTTP::Cookies;
 
 our $VERSION = '0.01';
+our $DEBUG = 0 || $ENV{DEBUG_HATEDAEDITOR};
 
 class_has 'win'           => ( is => 'rw', );
 class_has 'viewer'        => ( is => 'rw', );
@@ -23,7 +25,8 @@ class_has 'cui'           => (
     default => sub {
         return Curses::UI->new(
             -color_support => 1,
-            -language      => "english"
+            -language      => "english",
+            -debug         => $DEBUG,
         );
     }
 );
@@ -41,6 +44,9 @@ sub BUILD {
     $self->_load_config;
     $self->_setup_api;
     $self->_setup_ui;
+
+    __PACKAGE__->viewer->focus();
+    __PACKAGE__->cui->leave_curses;
 }
 
 no Moose;
@@ -55,10 +61,23 @@ sub _setup_api {
     my $self  = shift;
     my $group = shift;
 
+    my $timeout     = $self->config->{cookie} || 3000;
+    my $cookie_file = $self->config->{cookie} || 'cookie.txt';
+
+    my $cookies = HTTP::Cookies->new(
+        file     => $cookie_file,
+        autosave => 1,
+    );
+    $self->_setup_proxy;
     my $diary = WWW::HatenaDiary->new(
         {   username => $self->config->{username},
             password => $self->config->{password},
             group    => $group,
+            mech_opt => {
+                timeout    => $timeout,
+                cookie_jar => $cookies,
+                env_proxy  => 1,
+            },
         }
     );
     if ( !$diary->is_loggedin ) {
@@ -71,16 +90,17 @@ sub _setup_api {
     __PACKAGE__->api($diary);
 }
 
+sub _setup_proxy {
+    my $proxy = __PACKAGE__->config->{proxy};
+    $ENV{HTTP_PROXY} = $proxy if $proxy;
+}
+
 sub _setup_ui {
     my $self = shift;
     $self->_setup_cui;
     $self->_setup_window;
     $self->_setup_menu;
     $self->_setup_viewer;
-
-    # focusするタイミングを調べる
-    __PACKAGE__->viewer->focus();
-    __PACKAGE__->cui->leave_curses;
 }
 
 sub create_group_listbox {

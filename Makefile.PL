@@ -14,6 +14,7 @@ requires $_
     Path::Class
     WWW::HatenaDiary
     YAML
+    HTTP::Cookies
     /
     );
 

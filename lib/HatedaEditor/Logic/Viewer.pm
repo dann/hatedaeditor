@@ -78,6 +78,7 @@ sub _editor {
             "-c", "syntax on", "-c", "set background=dark", $filename );
     }
     else {
+        warn $editor;
         system( $editor, $filename );
     }
 }
