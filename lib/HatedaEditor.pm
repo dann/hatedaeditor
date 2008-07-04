@@ -20,6 +20,7 @@ class_has 'win'           => ( is => 'rw', );
 class_has 'viewer'        => ( is => 'rw', );
 class_has 'group_listbox' => ( is => 'rw', );
 class_has 'menu'          => ( is => 'rw', );
+class_has 'checkbox'      => ( is => 'rw', );
 class_has 'cui'           => (
     is      => 'rw',
     default => sub {
@@ -42,7 +43,7 @@ class_has 'config' => ( is => 'rw', );
 sub BUILD {
     my $self = shift;
     $self->_load_config;
-    $self->_setup_api;
+    $self->_setup_api( __PACKAGE__->config->{default_group} );
     $self->_setup_ui;
 
     __PACKAGE__->viewer->focus();
@@ -60,6 +61,10 @@ sub _load_config {
 sub _setup_api {
     my $self  = shift;
     my $group = shift;
+
+    if ( $group eq 'NONE' ) {
+        $group = undef;
+    }
 
     my $timeout     = $self->config->{cookie} || 3000;
     my $cookie_file = $self->config->{cookie} || 'cookie.txt';
@@ -101,6 +106,7 @@ sub _setup_ui {
     $self->_setup_window;
     $self->_setup_menu;
     $self->_setup_viewer;
+    $self->_setup_trivial_checkbox;
 }
 
 sub create_group_listbox {
@@ -211,13 +217,31 @@ sub _setup_window {
 sub _setup_viewer {
     my $self = shift;
     $self->viewer(
-        $self->win->add(
+        __PACKAGE__->win->add(
             "text", "TextViewer",
-            -text => "Hatena Diary Editor! Show help with '?';\n",
+            -text => "\n
+        HatedaEditor - CUI Hatena Editor \n
+               version 0.003\n
+                  by Dann \n
+    HatedaEditor is open source and freely distributable \n
+        hit  ? for help information \n
+"
         )
     );
 
     $self->_setup_viewer_binding;
+}
+
+sub _setup_trivial_checkbox {
+    my $self = shift;
+    $self->checkbox(
+        __PACKAGE__->win->add(
+            'trivial_checkbox', 'Checkbox',
+            -label   => 'trivial update?',
+            -checked => 0,
+        )
+    );
+
 }
 
 sub _setup_viewer_binding {

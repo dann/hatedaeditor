@@ -34,6 +34,7 @@ sub load {
         ||= $self->prompt("password:");
     $config->{group_list}
         ||= $self->prompt("group (space separated ):");
+    $config->{default_group} ||= 'NONE';
     $self->save($config);
     return $config;
 }
